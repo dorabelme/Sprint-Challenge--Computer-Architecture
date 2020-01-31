@@ -2,6 +2,23 @@
 
 import sys
 
+# ALU operations
+
+ADD = 0b10100000
+MUL = 0b10100010
+SUB = 0b10100001
+DIV = 0b10100011
+MOD = 0b10100100
+CMP = 0b10100111
+AND = 0b10101000
+OR = 0b10101010
+XOR = 0b10101011
+NOT = 0b01101001
+SHL = 0b10101100
+SHR = 0b10101101
+
+ALU_OP = [ADD, SUB, MUL, DIV, MOD, CMP, AND, NOT, OR, XOR, SHL, SHR]
+
 
 class CPU:
     """Main CPU class."""
@@ -17,18 +34,34 @@ class CPU:
         # stack pointer (SP)
         self.sp = 256
 
+        self.flag = self.reg[4]
+
         # self.mdr = 0
         # Commands
         self.commands = {
             0b00000001: self.hlt,
             0b10000010: self.ldi,
             0b01000111: self.prn,
-            0b10100010: self.mul,
             0b01000101: self.push,
             0b01000110: self.pop,
             0b01010000: self.call,
             0b00010001: self.iret,
-            0b10100000: self.add
+            0b10100111: self.cmp_function,
+            0b01010100: self.jmp,
+            0b01010101: self.jeq,
+            0b01010110: self.jne,
+            0b10100000: self.add,
+            0b10100010: self.mul,
+            0b10100001: self.sub,
+            0b10100011: self.div,
+            0b10100100: self.mod,
+            0b10100111: self.cmp_function,
+            0b10101000: self.aluand,
+            0b10101010: self.aluor,
+            0b10101011: self.aluxor,
+            0b01101001: self.alunot,
+            0b10101100: self.shl,
+            0b10101101: self.shr
         }
 
     # accepts the address in RAM and returns the value stored there
@@ -53,7 +86,13 @@ class CPU:
         print(self.reg[operand_a])
         return (2, True)
 
-    # multiply the values in two registers together and store the result in registerA
+    # STRETCH GOALS
+
+    def add_i(self, operand_a, operand_b):
+        self.reg[operand_a] += operand_b
+        return (2, True)
+
+    # ALU ops
     def mul(self, operand_a, operand_b):
         # calling alu function
         self.alu("MUL", operand_a, operand_b)
@@ -62,6 +101,42 @@ class CPU:
     def add(self, operand_a, operand_b):
         # calling alu function
         self.alu("ADD", operand_a, operand_b)
+        return (3, True)
+
+    def sub(self, operand_a, operand_b):
+        self.alu("SUB", operand_a, operand_b)
+        return (3, True)
+
+    def div(self, operand_a, operand_b):
+        self.alu("DIV", operand_a, operand_b)
+        return (3, True)
+
+    def aluand(self, operand_a, operand_b):
+        self.alu("AND", operand_a, operand_b)
+        return (3, True)
+
+    def alunot(self, operand_a, operand_b):
+        self.alu("NOT", operand_a, operand_b)
+        return (3, True)
+
+    def aluor(self, operand_a, operand_b):
+        self.alu("OR", operand_a, operand_b)
+        return (3, True)
+
+    def aluxor(self, operand_a, operand_b):
+        self.alu("XOR", operand_a, operand_b)
+        return (3, True)
+
+    def shl(self, operand_a, operand_b):
+        self.alu("SHL", operand_a, operand_b)
+        return (3, True)
+
+    def shr(self, operand_a, operand_b):
+        self.alu("SHR", operand_a, operand_b)
+        return (3, True)
+
+    def mod(self, operand_a, operand_b):
+        self.alu("MOD", operand_a, operand_b)
         return (3, True)
 
     def push(self, operand_a, operand_b):
@@ -100,6 +175,27 @@ class CPU:
         # self.sp += 1
         # self.pc = next_address
         return (0, True)
+
+    # SPRINT CHALLENGE
+    def cmp_function(self, operand_a, operand_b):
+        self.alu("CMP", operand_a, operand_b)
+        return (3, True)
+
+    def jmp(self, operand_a, operand_b):
+        self.pc = self.reg[operand_a]
+        return (0, True)
+
+    def jeq(self, operand_a, operand_b):
+        if self.flag == 0b00000001:
+            self.pc = self.reg[operand_a]
+            return(0, True)
+        return (2, True)
+
+    def jne(self, operand_a, operand_b):
+        if self.flag != 0b00000001:
+            self.pc = self.reg[operand_a]
+            return(0, True)
+        return (2, True)
 
     # loading from a file
 
@@ -147,9 +243,35 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        # elif op == "SUB": etc
+        elif op == "SUB":
+            self.reg[reg_a] -= self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] = (self.reg[reg_a] * self.reg[reg_b])
+        elif op == "DIV":
+            self.reg[reg_a] /= self.reg[reg_b]
+
+        elif op == "AND":
+            self.reg[reg_a] = self.reg[reg_a] & self.reg[reg_b]
+        elif op == "OR":
+            self.reg[reg_a] = self.reg[reg_a] | self.reg[reg_b]
+        elif op == "NOT":
+            self.reg[reg_a] = ~self.reg[reg_a]
+        elif op == "XOR":
+            self.reg[reg_a] = self.reg[reg_a] ^ self.reg[reg_b]
+        elif op == "MOD":
+            self.reg[reg_a] = self.reg[reg_a] % self.reg[reg_b]
+        elif op == "SHL":
+            self.reg[reg_a] = self.reg[reg_a] << self.reg[reg_b]
+        elif op == "SHR":
+            self.reg[reg_a] = self.reg[reg_a] >> self.reg[reg_b]
+
+        elif op == "CMP":
+            if self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = 0b00000010
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = 0b00000100
+            elif self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = 0b00000001
         else:
             raise Exception("Unsupported ALU operation")
 
